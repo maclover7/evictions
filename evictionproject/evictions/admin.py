@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import Case, Court
 
+admin.site.index_template = "admin/index.html"
 admin.site.register(Court)
 
 class CaseAdmin(admin.ModelAdmin):

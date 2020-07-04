@@ -1,0 +1,9 @@
+{% extends "admin/index.html" %}
+{% block content %}
+<h1><a href="{% url 'evictions:case_import' %}">Import cases</a></h1>
+{{ block.super }}
+{% endblock %}
+
+{% block sidebar %}
+{{ block.super }}
+{% endblock %}

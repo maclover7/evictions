@@ -26,7 +26,7 @@ class ExportCsvMixin:
 
 class CaseAdmin(admin.ModelAdmin, ExportCsvMixin):
     actions = ["export_as_csv"]
-    list_display = ['ujs_id', 'court', 'status', 'defendant', 'plaintiff']
+    list_display = ['ujs_id', 'court', 'status', 'file_date', 'defendant', 'plaintiff']
     list_filter = ['court', 'defendant_zipcode', 'plaintiff_zipcode']
     search_fields = ['court__id', 'defendant', 'plaintiff']
 

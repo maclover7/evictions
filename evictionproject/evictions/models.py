@@ -17,6 +17,7 @@ class Case(models.Model):
     file_date = models.DateField()
     judgment_amount = models.DecimalField(max_digits=12, decimal_places=2)
     last_event_date = models.DateField()
+    last_scraped_at = models.DateTimeField()
     monthly_rent = models.DecimalField(max_digits=12, decimal_places=2)
     plaintiff = models.TextField()
     plaintiff_zipcode = models.IntegerField()

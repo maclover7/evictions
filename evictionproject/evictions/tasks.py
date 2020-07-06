@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from decimal import Decimal, InvalidOperation
 import urllib.parse
 import re
+from django.utils import timezone
 
 from .models import Case, Court
 
@@ -198,6 +199,7 @@ class CaseImporter():
             file_date=file_date,
             judgment_amount=judgment_amount,
             last_event_date=last_event_date,
+            last_scraped_at=dt.datetime.now(tz=timezone.utc),
             monthly_rent=monthly_rent,
             plaintiff=parties[0],
             plaintiff_zipcode=plaintiff_zipcode,

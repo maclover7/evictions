@@ -2,3 +2,4 @@
 node_modules/
 00000*.json
 *.sqlite3
+*.pyc

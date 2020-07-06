@@ -88,7 +88,8 @@ class CaseImporter():
             print(r.text)
 
         flatten = lambda l: [item for sublist in l for item in sublist]
-        parsed_pdf = list(filter(None, flatten([ line.split("                  ") for line in pdf[0].split("\n")])))
+        parse_page = lambda p: list(filter(None, flatten([ line.split("                  ") for line in p.split("\n")])))
+        parsed_pdf = list(flatten(parse_page(page) for page in pdf))
         return parsed_pdf
 
     def parse_docket_text(self, docket_text, formatted_case_id):
@@ -98,7 +99,7 @@ class CaseImporter():
         else:
             status = docket_text[status_index].split("                 ")[-1]
 
-        claim_amount = self.format_money(docket_text[status_index - 1].strip())
+        claim_amount = self.format_money(docket_text[status_index - 1].split(" ")[-1].strip())
 
         file_date_index = [i for i, item in enumerate(docket_text) if 'File Date:' in item][0]
         file_date = dt.datetime.strptime(docket_text[file_date_index + 1].strip(), '%m/%d/%Y')
@@ -109,6 +110,7 @@ class CaseImporter():
         parties = [el.strip() for el in ' '.join(els).split("v.")]
 
         disposition_summary_index = [i for i, item in enumerate(docket_text) if 'DISPOSITION SUMMARY' in item][0]
+        participants_index = [i for i, item in enumerate(docket_text) if 'CASE PARTICIPANTS' in item][0]
 
         try:
             defendant_zipcode = int(docket_text[disposition_summary_index - 4].split(" ")[-1])
@@ -116,31 +118,50 @@ class CaseImporter():
             try:
                 defendant_zipcode = int(docket_text[disposition_summary_index - 5].split(" ")[-1])
             except ValueError:
-                defendant_zipcode = int(docket_text[disposition_summary_index - 6].split(" ")[-1])
+                try:
+                    defendant_zipcode = int(docket_text[disposition_summary_index - 6].split(" ")[-1])
+                except ValueError:
+                    try:
+                        defendant_zipcode = int(docket_text[disposition_summary_index - 3].split(" ")[-1])
+                    except ValueError:
+                        defendant_zipcode = int(docket_text[participants_index + 5].split(" ")[-1])
 
         try:
-            plaintiff_zipcode = int(docket_text[disposition_summary_index - 1].split(" ")[-1])
+            if ('Page' in docket_text[disposition_summary_index - 1]):
+                raise ValueError()
+            else:
+                plaintiff_zipcode = int(docket_text[disposition_summary_index - 1].split(" ")[-1])
         except ValueError:
             try:
                 plaintiff_zipcode = int(docket_text[disposition_summary_index - 2].split(" ")[-1])
             except ValueError:
-                plaintiff_zipcode = int(docket_text[disposition_summary_index - 3].split(" ")[-1])
+                try:
+                    plaintiff_zipcode = int(docket_text[disposition_summary_index - 3].split(" ")[-1])
+                except ValueError:
+                    plaintiff_zipcode = int(docket_text[participants_index + 8].split(" ")[-1])
 
-        participants_index = [i for i, item in enumerate(docket_text) if 'CASE PARTICIPANTS' in item][0]
-        try:
-            last_event_date_info = [el.strip() for el in docket_text[participants_index - 5].split("           ")[1:3]]
-            last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
-        except ValueError:
+        if ('CALENDAR EVENTS' in docket_text):
             try:
-                last_event_date_info = [el.strip() for el in docket_text[participants_index - 4].split("           ")[1:3]]
+                last_event_date_info = [el.strip() for el in docket_text[participants_index - 5].split("           ")[1:3]]
                 last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
             except ValueError:
                 try:
-                    last_event_date_info = [el.strip() for el in docket_text[participants_index - 3].split("        ")[1:3]]
+                    last_event_date_info = [el.strip() for el in docket_text[participants_index - 4].split("        ")[1:3]]
                     last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
                 except ValueError:
-                    last_event_date_info = [el.strip() for el in docket_text[participants_index - 6].split("           ")[0:2]]
-                    last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
+                    try:
+                        last_event_date_info = [el.strip() for el in docket_text[participants_index - 3].split("        ")[1:3]]
+                        last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
+                    except ValueError:
+                        try:
+                            last_event_date_info = [el.strip() for el in docket_text[participants_index - 6].split("           ")[0:2]]
+                            last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
+                        except ValueError:
+                            end_of_page_index = [i for i, item in enumerate(docket_text) if 'MDJS 1200' in item][0]
+                            last_event_date_info = [el.strip() for el in docket_text[end_of_page_index - 5].split("        ")[1:3]]
+                            last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
+        else:
+            last_event_date = file_date
 
         disposition_date = None
         judgment_amount = 0
@@ -154,7 +175,7 @@ class CaseImporter():
 
             was_withdrawn_index = [i for i, item in enumerate(docket_text) if 'Withdrawn' in item]
             if (len(was_withdrawn_index) > 0):
-                last_event_date = dt.datetime.strptime(docket_text[was_withdrawn_index[0] + 1].strip(), '%m/%d/%Y')
+                disposition_date = last_event_date = dt.datetime.strptime(docket_text[was_withdrawn_index[0] + 1].strip(), '%m/%d/%Y')
                 status += ", withdrawn"
             else:
                 judgment_components_index = [i for i, item in enumerate(docket_text) if 'Judgment Components' in item]
@@ -165,7 +186,7 @@ class CaseImporter():
                         judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 2].split(" ")[-1].strip())
                     except InvalidOperation:
                         try:
-                            judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 3].split("         ")[-1].strip())
+                            judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 3].split(" ")[-1].strip())
                         except InvalidOperation:
                             try:
                                 judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 4].split(" ")[-1].strip())
@@ -175,6 +196,38 @@ class CaseImporter():
                     dismissed_without_prejudice_index = [i for i, item in enumerate(docket_text) if 'Dismissed Without ' in item]
                     if (len(parties[1].split(", ")) == len(dismissed_without_prejudice_index)):
                         status += ", dismissed without prejudice"
+                        disposition_date = dt.datetime.strptime(docket_text[dismissed_without_prejudice_index[0]].split(" ")[0], '%m/%d/%Y')
+
+                    end_of_page_index = [i for i, item in enumerate(docket_text) if 'MDJS 1200' in item]
+                    if (disposition_date is None and len(end_of_page_index) > 1):
+                        try:
+                            disposition_date = dt.datetime.strptime(docket_text[end_of_page_index[0] - 1].strip(), '%m/%d/%Y')
+                        except ValueError:
+                            try:
+                                disposition_date = dt.datetime.strptime(docket_text[end_of_page_index[0] - 2].strip(), '%m/%d/%Y')
+                            except ValueError:
+                                try:
+                                    disposition_date = dt.datetime.strptime(docket_text[end_of_page_index[0] - 3].strip(), '%m/%d/%Y')
+                                except ValueError:
+                                    civil_disposition_index = [i for i, item in enumerate(docket_text) if 'Civil Disposition Details:' in item]
+                                    if (len(civil_disposition_index) > 0):
+                                        try:
+                                            disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 1].split(' ')[-1], '%m/%d/%Y')
+                                        except ValueError:
+                                            try:
+                                                disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
+                                            except ValueError:
+                                                disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 3].split(' ')[-1], '%m/%d/%Y')
+
+            civil_disposition_index = [i for i, item in enumerate(docket_text) if 'Civil Disposition Details:' in item]
+            if (disposition_date is None and len(civil_disposition_index) > 0):
+                try:
+                    disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 1].split(' ')[-1], '%m/%d/%Y')
+                except ValueError:
+                    try:
+                        disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
+                    except ValueError:
+                        disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
 
         Case(
             court=self.court,
@@ -191,6 +244,28 @@ class CaseImporter():
             status=status,
             ujs_id=formatted_case_id
         ).save()
+
+    def get_disposition_date(self, docket_text, formatted_case_id):
+        was_withdrawn_index = [i for i, item in enumerate(docket_text) if 'Withdrawn' in item]
+        if (len(was_withdrawn_index) > 0):
+            return dt.datetime.strptime(docket_text[was_withdrawn_index[0] + 1].strip(), '%m/%d/%Y')
+
+        end_of_page_index = [i for i, item in enumerate(docket_text) if 'MDJS 1200' in item]
+        if (len(end_of_page_index) > 1):
+            try:
+                return dt.datetime.strptime(docket_text[end_of_page_index[0] - 1].strip(), '%m/%d/%Y')
+            except ValueError:
+                try:
+                    return dt.datetime.strptime(docket_text[end_of_page_index[0] - 2].strip(), '%m/%d/%Y')
+                except ValueError:
+                    return dt.datetime.strptime(docket_text[end_of_page_index[0] - 3].strip(), '%m/%d/%Y')
+
+        civil_disposition_index = [i for i, item in enumerate(docket_text) if 'Civil Disposition Details:' in item]
+        if (len(civil_disposition_index) > 0):
+            try:
+                return dt.datetime.strptime(docket_text[civil_disposition_index[0] - 1].split(' ')[-1], '%m/%d/%Y')
+            except ValueError:
+                return dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
 
     def format_string_array(self, arr):
         return re.sub(" +", " ", urllib.parse.unquote(''.join(arr)))

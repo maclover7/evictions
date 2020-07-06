@@ -216,6 +216,9 @@ class CaseImporter():
                     except ValueError:
                         disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
 
+        if (disposition_date is None and 'Closed' in status):
+            raise ValueError('Must have disposition date if closed')
+
         Case(
             court=self.court,
             claim_amount=claim_amount,

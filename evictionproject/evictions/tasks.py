@@ -127,7 +127,7 @@ class CaseImporter():
             except ValueError:
                 plaintiff_zipcode = int(split_take_last(docket_text[participants_index + 8]))
 
-        if ('CALENDAR EVENTS' in docket_text):
+        if ('CALENDAR EVENTS' in ''.join(docket_text)):
             try:
                 last_event_date_info = [el.strip() for el in docket_text[participants_index - 5].split("           ")[1:3]]
                 last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')

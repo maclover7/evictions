@@ -216,8 +216,6 @@ class CaseImporter():
                     except ValueError:
                         disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
 
-            last_event_date = disposition_date
-
         Case(
             court=self.court,
             claim_amount=claim_amount,

@@ -129,24 +129,17 @@ class CaseImporter():
 
         if ('CALENDAR EVENTS' in ''.join(docket_text)):
             try:
-                last_event_date_info = [el.strip() for el in docket_text[participants_index - 5].split("           ")[1:3]]
-                last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
+                last_event_date = self.parse_value(
+                    docket_text, ValueError, participants_index, [-5, -4, -3], dt.datetime.strptime,
+                    lambda x:' '.join([el.strip() for el in x.split("           ")[1:3]]), '%m/%d/%Y %I:%M %p')
             except ValueError:
                 try:
-                    last_event_date_info = [el.strip() for el in docket_text[participants_index - 4].split("        ")[1:3]]
+                    last_event_date_info = [el.strip() for el in docket_text[participants_index - 6].split("           ")[0:2]]
                     last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
                 except ValueError:
-                    try:
-                        last_event_date_info = [el.strip() for el in docket_text[participants_index - 3].split("        ")[1:3]]
-                        last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
-                    except ValueError:
-                        try:
-                            last_event_date_info = [el.strip() for el in docket_text[participants_index - 6].split("           ")[0:2]]
-                            last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
-                        except ValueError:
-                            end_of_page_index = [i for i, item in enumerate(docket_text) if 'MDJS 1200' in item][0]
-                            last_event_date_info = [el.strip() for el in docket_text[end_of_page_index - 5].split("        ")[1:3]]
-                            last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
+                    end_of_page_index = [i for i, item in enumerate(docket_text) if 'MDJS 1200' in item][0]
+                    last_event_date_info = [el.strip() for el in docket_text[end_of_page_index - 5].split("        ")[1:3]]
+                    last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
         else:
             last_event_date = file_date
 
@@ -165,20 +158,9 @@ class CaseImporter():
                 disposition_date = last_event_date = dt.datetime.strptime(docket_text[was_withdrawn_index[0] + 1].strip(), '%m/%d/%Y')
                 status += ", withdrawn"
             else:
-                judgment_components_index = [i for i, item in enumerate(docket_text) if 'Judgment Components' in item]
                 try:
-                    judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 1].split(" ")[-1].strip())
-                except InvalidOperation:
-                    try:
-                        judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 2].split(" ")[-1].strip())
-                    except InvalidOperation:
-                        try:
-                            judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 3].split(" ")[-1].strip())
-                        except InvalidOperation:
-                            try:
-                                judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 4].split(" ")[-1].strip())
-                            except InvalidOperation:
-                                judgment_amount = self.format_money(docket_text[judgment_components_index[0] - 5].split("            ")[-1].strip())
+                    judgment_components_index = [i for i, item in enumerate(docket_text) if 'Judgment Components' in item]
+                    judgment_amount = self.parse_value(docket_text, InvalidOperation, judgment_components_index[0], [-1, -2, -3, -4, -5], self.format_money, lambda x:split_take_last(x).strip())
                 except IndexError:
                     dismissed_without_prejudice_index = [i for i, item in enumerate(docket_text) if 'Dismissed Without ' in item]
                     if (len(parties[1].split(", ")) == len(dismissed_without_prejudice_index)):
@@ -188,33 +170,21 @@ class CaseImporter():
                     end_of_page_index = [i for i, item in enumerate(docket_text) if 'MDJS 1200' in item]
                     if (disposition_date is None and len(end_of_page_index) > 1):
                         try:
-                            disposition_date = dt.datetime.strptime(docket_text[end_of_page_index[0] - 1].strip(), '%m/%d/%Y')
+                            disposition_date = self.parse_value(
+                                docket_text, ValueError, end_of_page_index[0], [-1, -2, -3], dt.datetime.strptime,
+                                lambda x:x.strip(), '%m/%d/%Y')
                         except ValueError:
-                            try:
-                                disposition_date = dt.datetime.strptime(docket_text[end_of_page_index[0] - 2].strip(), '%m/%d/%Y')
-                            except ValueError:
-                                try:
-                                    disposition_date = dt.datetime.strptime(docket_text[end_of_page_index[0] - 3].strip(), '%m/%d/%Y')
-                                except ValueError:
-                                    civil_disposition_index = [i for i, item in enumerate(docket_text) if 'Civil Disposition Details:' in item]
-                                    if (len(civil_disposition_index) > 0):
-                                        try:
-                                            disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 1].split(' ')[-1], '%m/%d/%Y')
-                                        except ValueError:
-                                            try:
-                                                disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
-                                            except ValueError:
-                                                disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 3].split(' ')[-1], '%m/%d/%Y')
+                            civil_disposition_index = [i for i, item in enumerate(docket_text) if 'Civil Disposition Details:' in item]
+                            if (len(civil_disposition_index) > 0):
+                                disposition_date = self.parse_value(
+                                    docket_text, ValueError, civil_disposition_index[0], [-1, -2, -3], dt.datetime.strptime,
+                                    lambda x:x.strip(), '%m/%d/%Y')
 
             civil_disposition_index = [i for i, item in enumerate(docket_text) if 'Civil Disposition Details:' in item]
             if (disposition_date is None and len(civil_disposition_index) > 0):
-                try:
-                    disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 1].split(' ')[-1], '%m/%d/%Y')
-                except ValueError:
-                    try:
-                        disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
-                    except ValueError:
-                        disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
+                disposition_date = self.parse_value(
+                    docket_text, ValueError, civil_disposition_index[0], [-1, -2, -3], dt.datetime.strptime,
+                    lambda x:x.strip(), '%m/%d/%Y')
 
         if (disposition_date is None and 'Closed' in status):
             raise ValueError('Must have disposition date if closed')

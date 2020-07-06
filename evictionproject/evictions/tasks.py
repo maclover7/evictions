@@ -93,13 +93,15 @@ class CaseImporter():
         return parsed_pdf
 
     def parse_docket_text(self, docket_text, formatted_case_id):
+        split_take_last = lambda x:x.split(" ")[-1]
+
         status_index = [i for i, item in enumerate(docket_text) if 'Case Status:' in item][0]
         if (docket_text[status_index].strip() == "Case Status:"):
             status = docket_text[status_index + 1].split("                 ")[-1]
         else:
             status = docket_text[status_index].split("                 ")[-1]
 
-        claim_amount = self.format_money(docket_text[status_index - 1].split(" ")[-1].strip())
+        claim_amount = self.format_money(split_take_last(docket_text[status_index - 1]).strip())
 
         file_date_index = [i for i, item in enumerate(docket_text) if 'File Date:' in item][0]
         file_date = dt.datetime.strptime(docket_text[file_date_index + 1].strip(), '%m/%d/%Y')
@@ -113,32 +115,17 @@ class CaseImporter():
         participants_index = [i for i, item in enumerate(docket_text) if 'CASE PARTICIPANTS' in item][0]
 
         try:
-            defendant_zipcode = int(docket_text[disposition_summary_index - 4].split(" ")[-1])
+            defendant_zipcode = self.parse_value(docket_text, ValueError, disposition_summary_index, [-4, -5, -6, -3], int, split_take_last)
         except ValueError:
-            try:
-                defendant_zipcode = int(docket_text[disposition_summary_index - 5].split(" ")[-1])
-            except ValueError:
-                try:
-                    defendant_zipcode = int(docket_text[disposition_summary_index - 6].split(" ")[-1])
-                except ValueError:
-                    try:
-                        defendant_zipcode = int(docket_text[disposition_summary_index - 3].split(" ")[-1])
-                    except ValueError:
-                        defendant_zipcode = int(docket_text[participants_index + 5].split(" ")[-1])
+            defendant_zipcode = int(split_take_last(docket_text[participants_index + 5]))
 
-        try:
-            if ('Page' in docket_text[disposition_summary_index - 1]):
-                raise ValueError()
-            else:
-                plaintiff_zipcode = int(docket_text[disposition_summary_index - 1].split(" ")[-1])
-        except ValueError:
+        if ('Page' in docket_text[disposition_summary_index - 1]):
+            raise ValueError()
+        else:
             try:
-                plaintiff_zipcode = int(docket_text[disposition_summary_index - 2].split(" ")[-1])
+                plaintiff_zipcode = self.parse_value(docket_text, ValueError, disposition_summary_index, [-1, -2, -3], int, split_take_last)
             except ValueError:
-                try:
-                    plaintiff_zipcode = int(docket_text[disposition_summary_index - 3].split(" ")[-1])
-                except ValueError:
-                    plaintiff_zipcode = int(docket_text[participants_index + 8].split(" ")[-1])
+                plaintiff_zipcode = int(split_take_last(docket_text[participants_index + 8]))
 
         if ('CALENDAR EVENTS' in docket_text):
             try:
@@ -229,7 +216,7 @@ class CaseImporter():
                     except ValueError:
                         disposition_date = dt.datetime.strptime(docket_text[civil_disposition_index[0] - 2].split(' ')[-1], '%m/%d/%Y')
 
-        last_event_date = disposition_date
+            last_event_date = disposition_date
 
         Case(
             court=self.court,
@@ -274,6 +261,17 @@ class CaseImporter():
 
     def format_money(self, money):
         return Decimal(money[1:].replace(',', ''))
+
+    def parse_value(self, docket_text, error_class, start, idx_ops, operation, format_text, *extra_args):
+        for idx_op in list(idx_ops):
+            try:
+                if (extra_args):
+                    return operation(format_text(docket_text[start + idx_op]), *extra_args)
+                else:
+                    return operation(format_text(docket_text[start + idx_op]))
+            except error_class:
+                continue
+        raise error_class()
 
 @background(schedule=60)
 def get_new_cases(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie):

@@ -148,7 +148,7 @@ class CaseImporter():
         judgment_amount = 0
         monthly_rent = 0
 
-        if (status != 'Active'):
+        if (status != 'Active' and status != 'Inactive'):
             monthly_rent_index = [i for i, item in enumerate(docket_text) if 'Monthly Rent' in item]
             if (len(monthly_rent_index) > 0):
                 monthly_rent = self.format_money(docket_text[monthly_rent_index[0]].split(' ')[-1])
@@ -265,8 +265,14 @@ def get_new_cases(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsAS
             ci.import_case(latest_case_id)
             latest_case_id += 1
         except CaseDoesNotExistError:
-            print("CaseDoesNotExist!! %s" % latest_case_id)
-            break
+            latest_case_id += 1
+            try:
+                print(latest_case_id)
+                ci.import_case(latest_case_id)
+                latest_case_id += 1
+            except CaseDoesNotExistError:
+                print("CaseDoesNotExist!! %s" % latest_case_id)
+                break
 
     # TODO: Update cases that are not closed
     # cases = Case.objects.filter(court__id=court).exclude(status__contains="Closed")

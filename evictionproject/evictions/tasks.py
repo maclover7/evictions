@@ -121,12 +121,14 @@ class CaseImporter():
             defendant_zipcode = int(split_take_last(docket_text[participants_index + 5]))
 
         if ('Page' in docket_text[disposition_summary_index - 1]):
-            raise ValueError()
+            plaintiff_zip_locations = [-2, -3]
         else:
-            try:
-                plaintiff_zipcode = self.parse_value(docket_text, ValueError, disposition_summary_index, [-1, -2, -3], int, split_take_last)
-            except ValueError:
-                plaintiff_zipcode = int(split_take_last(docket_text[participants_index + 8]))
+            plaintiff_zip_locations = [-1, -2, -3]
+
+        try:
+            plaintiff_zipcode = self.parse_value(docket_text, ValueError, disposition_summary_index, plaintiff_zip_locations, int, split_take_last)
+        except ValueError:
+            plaintiff_zipcode = int(split_take_last(docket_text[participants_index + 8]))
 
         if ('CALENDAR EVENTS' in ''.join(docket_text)):
             try:
@@ -153,6 +155,11 @@ class CaseImporter():
             if (len(monthly_rent_index) > 0):
                 monthly_rent = self.format_money(docket_text[monthly_rent_index[0]].split(' ')[-1])
                 disposition_date = dt.datetime.strptime(docket_text[monthly_rent_index[0] - 1].split(' ')[-1], '%m/%d/%Y')
+
+            was_transferred_index = [i for i, item in enumerate(docket_text) if 'Case Transferred' in item]
+            if (len(was_transferred_index) > 0):
+                disposition_date = last_event_date = dt.datetime.strptime(docket_text[was_transferred_index[0]].split(' ')[0], '%m/%d/%Y')
+                status += ", transferred"
 
             was_withdrawn_index = [i for i, item in enumerate(docket_text) if 'Withdrawn' in item]
             if (len(was_withdrawn_index) > 0):

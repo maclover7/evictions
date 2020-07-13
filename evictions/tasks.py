@@ -155,12 +155,13 @@ class CaseImporter():
         judgment_amount = 0
         monthly_rent = 0
 
-        if (status != 'Active' and status != 'Inactive'):
-            monthly_rent_index = [i for i, item in enumerate(docket_text) if 'Monthly Rent' in item]
-            if (len(monthly_rent_index) > 0):
-                monthly_rent = self.format_money(docket_text[monthly_rent_index[0]].split(' ')[-1])
-                disposition_date = dt.datetime.strptime(docket_text[monthly_rent_index[0] - 1].split(' ')[-1], '%m/%d/%Y')
 
+        monthly_rent_index = [i for i, item in enumerate(docket_text) if 'Monthly Rent' in item]
+        if (len(monthly_rent_index) > 0):
+            monthly_rent = self.format_money(docket_text[monthly_rent_index[0]].split(' ')[-1])
+            disposition_date = dt.datetime.strptime(docket_text[monthly_rent_index[0] - 1].split(' ')[-1], '%m/%d/%Y')
+
+        if (disposition_date != None or (status != 'Active' and status != 'Inactive')):
             was_transferred_index = [i for i, item in enumerate(docket_text) if 'Case Transferred' in item]
             if (len(was_transferred_index) > 0):
                 disposition_date = last_event_date = dt.datetime.strptime(docket_text[was_transferred_index[0]].split(' ')[0], '%m/%d/%Y')

@@ -118,7 +118,11 @@ class CaseImporter():
         try:
             defendant_zipcode = self.parse_value(docket_text, ValueError, disposition_summary_index, [-4, -5, -6, -3], int, split_take_last)
         except ValueError:
-            defendant_zipcode = int(split_take_last(docket_text[participants_index + 5]))
+            last_attempt = split_take_last(docket_text[participants_index + 5])
+            if (last_attempt == 'PA'):
+                defendant_zipcode = 0
+            else:
+                defendant_zipcode = int(last_attempt)
 
         if ('Page' in docket_text[disposition_summary_index - 1]):
             plaintiff_zip_locations = [-2, -3]

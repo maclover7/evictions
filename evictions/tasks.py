@@ -141,8 +141,9 @@ class CaseImporter():
                     lambda x:' '.join([el.strip() for el in x.split("       ")[1:3]]), '%m/%d/%Y %I:%M %p')
             except ValueError:
                 try:
-                    last_event_date_info = [el.strip() for el in docket_text[participants_index - 6].split("       ")[0:2]]
-                    last_event_date = dt.datetime.strptime(' '.join(last_event_date_info), '%m/%d/%Y %I:%M %p')
+                    last_event_date = self.parse_value(
+                        docket_text, ValueError, participants_index, [-6, -5], dt.datetime.strptime,
+                        lambda x:' '.join([el.strip() for el in x.split("       ")[0:2]]), '%m/%d/%Y %I:%M %p')
                 except ValueError:
                     end_of_page_index = [i for i, item in enumerate(docket_text) if 'MDJS 1200' in item][0]
                     last_event_date_info = [el.strip() for el in docket_text[end_of_page_index - 5].split("       ")[1:3]]

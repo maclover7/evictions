@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from .forms import CaseImportForm
 from .models import Court
-from .tasks import get_new_cases
+from .tasks import get_cases_for_court
 
 def case_import(request):
     if request.method == 'POST':
@@ -18,7 +18,7 @@ def case_import(request):
             ujsBRootCookie = form.cleaned_data.get('UJSBRootCookie')
 
             for court in courts:
-                get_new_cases(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie)
+                get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie)
 
             return HttpResponseRedirect(reverse('admin:index'))
     else:

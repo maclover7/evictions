@@ -25,9 +25,9 @@ class CaseImporter():
         self.ujsASPCookie = ujsASPCookie
         self.ujsBRootCookie = ujsBRootCookie
 
-    def import_case(self, case_id):
+    def import_case(self, case_id, existing_case = None):
         formatted_case_id = str(case_id).zfill(7)
-        self.parse_docket_text(self.parse_case(self.fetch_case(formatted_case_id)), formatted_case_id)
+        self.parse_docket_text(self.parse_case(self.fetch_case(formatted_case_id)), formatted_case_id, existing_case=existing_case)
 
     def fetch_case(self, formatted_case_id):
         headers = {
@@ -93,7 +93,7 @@ class CaseImporter():
         parsed_pdf = list(flatten(parse_page(page) for page in pdf))
         return parsed_pdf
 
-    def parse_docket_text(self, docket_text, formatted_case_id):
+    def parse_docket_text(self, docket_text, formatted_case_id, existing_case = None):
         split_take_last = lambda x:x.split(" ")[-1]
 
         status_index = [i for i, item in enumerate(docket_text) if 'Case Status:' in item][0]
@@ -201,22 +201,27 @@ class CaseImporter():
         if (disposition_date is None and 'Closed' in status):
             raise ValueError('Must have disposition date if closed')
 
-        Case(
-            court=self.court,
-            claim_amount=claim_amount,
-            defendant=parties[1],
-            defendant_zipcode=defendant_zipcode,
-            disposition_date=disposition_date,
-            file_date=file_date,
-            judgment_amount=judgment_amount,
-            last_event_date=last_event_date,
-            last_scraped_at=dt.datetime.now(tz=timezone.utc),
-            monthly_rent=monthly_rent,
-            plaintiff=parties[0],
-            plaintiff_zipcode=plaintiff_zipcode,
-            status=status,
-            ujs_id=formatted_case_id
-        ).save()
+        data = {
+            'court': self.court,
+            'claim_amount': claim_amount,
+            'defendant': parties[1],
+            'defendant_zipcode': defendant_zipcode,
+            'disposition_date': disposition_date,
+            'file_date': file_date,
+            'judgment_amount': judgment_amount,
+            'last_event_date': last_event_date,
+            'last_scraped_at': dt.datetime.now(tz=timezone.utc),
+            'monthly_rent': monthly_rent,
+            'plaintiff': parties[0],
+            'plaintiff_zipcode': plaintiff_zipcode,
+            'status': status,
+            'ujs_id': formatted_case_id
+        }
+
+        if (existing_case):
+            existing_case.update(**data)
+        else:
+            Case.objects.create(**data)
 
     def get_disposition_date(self, docket_text, formatted_case_id):
         was_withdrawn_index = [i for i, item in enumerate(docket_text) if 'Withdrawn' in item]
@@ -258,7 +263,7 @@ class CaseImporter():
         raise error_class()
 
 @background(schedule=60)
-def get_new_cases(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie):
+def get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie):
     # Get new cases
     latest_case_id = 1
     try:

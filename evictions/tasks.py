@@ -220,7 +220,7 @@ class CaseImporter():
         }
 
         if (existing_case):
-            existing_case.update(**data)
+            existing_case.update(data)
         else:
             Case.objects.create(**data)
 
@@ -265,17 +265,17 @@ class CaseImporter():
 
 @background(schedule=60)
 def get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie):
+    ci = CaseImporter(
+        Court.objects.get(pk=court),
+        ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie
+        )
+
     # Get new cases
     latest_case_id = 1
     try:
         latest_case_id = Case.objects.filter(court__id=court).latest('ujs_id').ujs_id + 1
     except:
         pass
-
-    ci = CaseImporter(
-            Court.objects.get(pk=court),
-            ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie
-            )
 
     while(True):
         try:
@@ -290,5 +290,7 @@ def get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie,
                 print("CaseDoesNotExist!! %s" % latest_case_id)
                 break
 
-    # TODO: Update cases that are not closed
-    # cases = Case.objects.filter(court__id=court).exclude(status__contains="Closed")
+    # Update cases that are not closed
+    cases = Case.objects.filter(court__id=court).exclude(status__contains="Closed").all()
+    for case in cases:
+        ci.import_case(case.ujs_id, case)

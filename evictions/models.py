@@ -23,3 +23,9 @@ class Case(models.Model):
     plaintiff_zipcode = models.IntegerField()
     status = models.TextField()
     ujs_id = models.IntegerField()
+
+
+    def update(self, updated_attrs):
+        for k in updated_attrs:
+            setattr(self, k, updated_attrs[k])
+        self.save()

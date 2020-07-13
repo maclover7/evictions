@@ -284,7 +284,6 @@ def get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie,
         except CaseDoesNotExistError:
             latest_case_id += 1
             try:
-                print(latest_case_id)
                 ci.import_case(latest_case_id)
                 latest_case_id += 1
             except CaseDoesNotExistError:

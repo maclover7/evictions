@@ -288,10 +288,14 @@ def get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie,
                 ci.import_case(latest_case_id)
                 latest_case_id += 1
             except CaseDoesNotExistError:
-                print("CaseDoesNotExist!! %s" % latest_case_id)
+                print("CaseDoesNotExist (new case) %s" % latest_case_id)
                 break
 
     # Update cases that are not closed
     cases = Case.objects.filter(court__id=court).exclude(status__contains="Closed").all()
     for case in cases:
-        ci.import_case(case.ujs_id, case)
+        try:
+            ci.import_case(case.ujs_id, case)
+        except CaseDoesNotExistError:
+            print("CaseDoesNotExist (existing case) %s" % case.id)
+            break

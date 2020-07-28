@@ -203,6 +203,16 @@ class CaseImporter():
         if (disposition_date is None and 'Closed' in status):
             raise ValueError('Must have disposition date if closed')
 
+        plaintiff = parties[0]
+        if ('Brandywine Agency' in plaintiff):
+            plaintiff = 'Brandywine Agency, Inc.'
+
+        if ('ACHA-General Braddock Tower Mgt.' in plaintiff):
+            plaintiff = 'ACHA - General Braddock Tower Mgt.'
+
+        if ('ACHA-Millvue Acres Management Office' in plaintiff):
+            plaintiff = 'ACHA - Millvue Acres Management Office'
+
         data = {
             'court': self.court,
             'claim_amount': claim_amount,
@@ -214,7 +224,7 @@ class CaseImporter():
             'last_event_date': last_event_date,
             'last_scraped_at': dt.datetime.now(tz=timezone.utc),
             'monthly_rent': monthly_rent,
-            'plaintiff': parties[0],
+            'plaintiff': plaintiff,
             'plaintiff_zipcode': plaintiff_zipcode,
             'status': status,
             'ujs_id': formatted_case_id

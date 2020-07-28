@@ -13,12 +13,10 @@ def case_import(request):
             courts = form.cleaned_data.get('Courts')
             ujsViewState = form.cleaned_data.get('UJSViewState')
             ujsCaptchaAnswer = form.cleaned_data.get('UJSCaptchaAnswer')
-            ujsBDocketCookie = form.cleaned_data.get('UJSBDocketCookie')
             ujsASPCookie = form.cleaned_data.get('UJSASPCookie')
-            ujsBRootCookie = form.cleaned_data.get('UJSBRootCookie')
 
             for court in courts:
-                get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie)
+                get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsASPCookie)
 
             return HttpResponseRedirect(reverse('admin:index'))
     else:

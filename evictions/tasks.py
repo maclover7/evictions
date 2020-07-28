@@ -17,13 +17,11 @@ class CaseDoesNotExistError(Exception):
     pass
 
 class CaseImporter():
-    def __init__(self, court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie):
+    def __init__(self, court, ujsViewState, ujsCaptchaAnswer, ujsASPCookie):
         self.court = court
         self.ujsViewState = ujsViewState
         self.ujsCaptchaAnswer = ujsCaptchaAnswer
-        self.ujsBDocketCookie = ujsBDocketCookie
         self.ujsASPCookie = ujsASPCookie
-        self.ujsBRootCookie = ujsBRootCookie
 
     def import_case(self, case_id, existing_case = None):
         formatted_case_id = str(case_id).zfill(7)
@@ -47,10 +45,8 @@ class CaseImporter():
         }
 
         cookies = {
-            'f5avrbbbbbbbbbbbbbbbb': self.ujsBDocketCookie,
             'f5_cspm': '1234',
             'ASP.NET_SessionId': self.ujsASPCookie,
-            'f5avrbbbbbbbbbbbbbbbb': self.ujsBRootCookie
         }
 
         data = {
@@ -275,11 +271,8 @@ class CaseImporter():
         raise error_class()
 
 @background(schedule=60)
-def get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie):
-    ci = CaseImporter(
-        Court.objects.get(pk=court),
-        ujsViewState, ujsCaptchaAnswer, ujsBDocketCookie, ujsASPCookie, ujsBRootCookie
-        )
+def get_cases_for_court(court, ujsViewState, ujsCaptchaAnswer, ujsASPCookie):
+    ci = CaseImporter(Court.objects.get(pk=court), ujsViewState, ujsCaptchaAnswer, ujsASPCookie)
 
     # Get new cases
     latest_case_id = 1

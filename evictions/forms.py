@@ -10,6 +10,4 @@ class CaseImportForm(forms.Form):
     Courts = forms.MultipleChoiceField(widget=forms.CheckboxSelectMultiple, choices=list(result))
     UJSViewState = forms.CharField()
     UJSCaptchaAnswer = forms.CharField()
-    UJSBDocketCookie = forms.CharField()
     UJSASPCookie = forms.CharField()
-    UJSBRootCookie = forms.CharField()

@@ -15,7 +15,6 @@ pdftotext==2.1.4
 psycopg2==2.8.5
 psycopg2-binary==2.8.5
 pycparser==2.19
-PyPDF2==1.26.0
 python-poppler==0.2.1
 pytz==2019.3
 requests==2.24.0

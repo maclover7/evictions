@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from .models import Case, Court
 
 admin.site.index_template = "admin/index.html"
+admin.site.change_list_template = "admin/change_list.html"
 admin.site.register(Court)
 
 class ExportCsvMixin:
